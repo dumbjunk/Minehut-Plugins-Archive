@@ -1,43 +1,35 @@
-protected void execute(Event e) {
-    byte b;
-    int i;
-    String[] arrayOfString;
-    for (i = (arrayOfString = (String[])this.messages.getArray(e)).length, b = 0; b < i; ) {
-      String message = arrayOfString[b];
-      if (this.files != null) {
-        byte b1;
-        int j;
-        String[] arrayOfString1;
-        for (j = (arrayOfString1 = (String[])this.files.getArray(e)).length, b1 = 0; b1 < j; ) {
-          String s = arrayOfString1[b1];
-          s = s.toLowerCase();
-          if (!s.endsWith(".log"))
-            s = String.valueOf(s) + ".log"; 
-          if (s.equals("server.log")) {
-            SkriptLogger.LOGGER.log(Level.INFO, message);
-          } else {
-            PrintWriter w = writers.get(s);
-            if (w == null) {
-              File f = new File(logsFolder, s);
-              try {
-                f.getParentFile().mkdirs();
-                w = new PrintWriter(new BufferedWriter(new FileWriter(f, true)));
-                writers.put(s, w);
-              } catch (IOException ex) {
-                Skript.error("Cannot write to log file '" + s + "' (" + f.getPath() + "): " + ExceptionUtils.toString(ex));
-                return;
-              } 
-            } 
-            w.println("[" + SkriptConfig.formatDate(System.currentTimeMillis()) + "] " + message);
-            w.flush();
-          } 
-          b1++;
-        } 
-      } else {
-        Trigger t = getTrigger();
-        File script = (t == null) ? null : t.getScript();
-        Skript.info("[" + ((script != null) ? script.getName() : "---") + "] " + message);
-      } 
-      b++;
-    } 
-  }
+@SuppressWarnings("resource")
+@Override
+protected void execute(final Event e) {
+	for (final String message : messages.getArray(e)) {
+		if (files != null) {
+			for (String s : files.getArray(e)) {
+				s = s.toLowerCase();
+				if (!s.endsWith(".log"))
+					s += ".log";
+				if (s.equals("server.log")) {
+					SkriptLogger.LOGGER.log(Level.INFO, message);
+					continue;
+				}
+				PrintWriter w = writers.get(s);
+				if (w == null) {
+					final File f = new File(logsFolder, s); // REMIND what if s contains '..'?
+					try {
+						f.getParentFile().mkdirs();
+						w = new PrintWriter(new BufferedWriter(new FileWriter(f, true)));
+						writers.put(s, w);
+					} catch (final IOException ex) {
+						Skript.error("Cannot write to log file '" + s + "' (" + f.getPath() + "): " + ExceptionUtils.toString(ex));
+						return;
+					}
+				}
+				w.println("[" + SkriptConfig.formatDate(System.currentTimeMillis()) + "] " + message);
+				w.flush();
+			}
+		} else {
+			final Trigger t = getTrigger();
+			final File script = t == null ? null : t.getScript();
+			Skript.info("[" + (script != null ? script.getName() : "---") + "] " + message);
+		}
+	}
+}
